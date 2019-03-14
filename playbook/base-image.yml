@@ -1,0 +1,192 @@
+---
+- hosts: all
+  vars:
+    aws_region: "{{ aws_region }}"
+  become: yes
+  roles:
+    - stefangweichinger.rclone
+  tasks:
+  - name: Get distro codename
+    shell: lsb_release -cs
+    register: distro
+  - name: Import nginx repo signing key
+    apt_key:
+      url: https://nginx.org/keys/nginx_signing.key
+      state: present
+  - name: Import docker repo signing key
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+  - name: Add nginx repository
+    apt_repository:
+      repo: "deb [arch=amd64] http://nginx.org/packages/ubuntu {{ distro.stdout }} nginx"
+      state: present
+      update_cache: no
+  - name: Add docker repository
+    apt_repository:
+      repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ distro.stdout }} stable"
+      state: present
+      update_cache: no
+  - name: Add borgbackup repository
+    apt_repository:
+      repo: "ppa:costamagnagianfranco/borgbackup"
+      state: present
+      update_cache: no
+  - name: Add universe repository
+    apt_repository:
+      update_cache: no
+      state: present
+      repo: "{{ item }}"
+    loop:
+      - "deb http://archive.ubuntu.com/ubuntu/ {{ distro.stdout }} universe"
+      - "deb http://archive.ubuntu.com/ubuntu/ {{ distro.stdout }}-updates universe"
+      - "deb http://security.ubuntu.com/ubuntu/ {{ distro.stdout }}-security universe"
+  - name: Add certbot repository
+    apt_repository:
+      repo: "ppa:certbot/certbot"
+      state: present
+      update_cache: no
+  - name: Upgrade all packages to the latest version
+    apt:
+      update_cache: yes
+      upgrade: dist
+  - name: Install packages
+    apt:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - curl
+      - gnupg2
+      - ca-certificates
+      - lsb-release
+      - libgc1c2
+      - libyaml-dev
+      - nginx
+      - git
+      - wget
+      - jq
+      - haveged
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - mariadb-client
+      - python-setuptools
+      - python-pip
+      - borgbackup
+      - pwgen
+      - php7.2-cli
+      - php7.2-gd
+      - php7.2-xml
+      - php7.2-mbstring
+      - php7.2-curl
+      - nvme-cli
+      - tmux
+      - mc
+      - certbot
+      - python-certbot-nginx
+  - name: Install docker-compose
+    get_url:
+      url: "https://github.com/docker/compose/releases/download/1.24.0-rc1/docker-compose-Linux-x86_64"
+      dest: "/usr/local/bin/docker-compose"
+      mode: 0755
+      force: yes
+  - name: Calculate sha256 of docker-compose
+    stat:
+      path: "/usr/local/bin/docker-compose"
+      checksum_algorithm: sha256
+    register: dcst
+  - name: "Fail on docker-compose checksum mismatch"
+    fail:
+      msg: "Docker-compose sha256 checksum doesn't match!"
+    when: dcst.stat.checksum != '451b7dbb34a4ee3b69abc9c60414ee277416d69069e200274b2f37da0d558d30'
+  - name: Clean apt cache
+    shell: apt-get clean
+  - name: Deploy systemd services.
+    copy:
+      src: "{{ item }}"
+      dest: /etc/systemd/system/
+      owner: root
+      mode: 0644
+    with_fileglob:
+      - files/systemd/*
+  - name: Enable docker-cleanup timer
+    systemd:
+      name: docker-cleanup.timer
+      state: started
+      enabled: yes
+      daemon_reload: yes
+  - name: Deploy new nginx configuration
+    copy:
+      src: files/nginx.conf
+      dest: /etc/nginx/nginx.conf
+      owner: root
+      group: root
+      mode: 0644
+  - name: Delete default nginx site configs
+    shell: rm /etc/nginx/conf.d/*
+  - name: Install nginx default site config
+    copy:
+      src: files/zzz_default.conf
+      dest: /etc/nginx/conf.d/zzz_default.conf
+      owner: root
+      group: root
+      mode: 0644
+  - name: Set up docker web network
+    shell: "docker network create -d bridge --subnet=172.28.200.0/24 --gateway=172.28.200.1 -o \"com.docker.network.bridge.enable_ip_masquerade=true\" -o \"com.docker.network.bridge.enable_icc=true\" -o \"com.docker.network.bridge.host_binding_ipv4=127.0.0.1\" -o \"com.docker.network.bridge.name=dweb0\" -o \"com.docker.network.driver.mtu=1500\" web"
+  - name: Fix ubuntu's libpcre madness
+    file:
+      src: "libpcre.so.3"
+      dest: "/lib/x86_64-linux-gnu/libpcre.so.1"
+      state: link
+  - name: Ensure group 'web'
+    group:
+      name: web
+      state: present
+  - name: Add the user 'web'
+    user:
+      name: web
+      shell: /usr/sbin/nologin
+      groups: web,docker
+      append: yes
+      state: present
+  - name: Enable haveged service
+    systemd:
+      name: haveged
+      enabled: yes
+      state: started
+  - name: Create directory for cfn-init
+    file:
+      path: /opt/aws/bin
+      state: directory
+  - name: Create directory for cfn configs
+    file:
+      path: /etc/cfn/hooks.d
+      state: directory
+  - name: Install cfn-init
+    shell: python /usr/lib/python2.7/dist-packages/easy_install.py --script-dir /opt/aws/bin https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+  - name: Create mountpoint for data disk
+    file:
+      path: /data
+      state: directory
+  - name: Install modified fstab
+    copy:
+      src: files/fstab
+      dest: /etc/fstab
+      owner: root
+      group: root
+      mode: 0644
+  - name: Copy awslogs agent base configuration
+    copy:
+      src: files/awslogs.conf
+      dest: /tmp/awslogs.conf
+      owner: root
+      group: root
+      mode: 0644
+  - name: Download awslogs agent
+    get_url:
+      url: "https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py"
+      dest: "/tmp/awslogs-agent-setup.py"
+      mode: 0755
+      force: yes
+  - name: Install awslogs agent
+    shell: "python /tmp/awslogs-agent-setup.py --region {{ aws_region }} --non-interactive -c /tmp/awslogs.conf"

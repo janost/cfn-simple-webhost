@@ -1,0 +1,5 @@
+LABEL=cloudimg-rootfs   /        ext4   defaults,discard        0 0
+# Data volume, will be mounted on the actual instance
+/dev/xvdb               /data    ext4   defaults,discard,nofail,x-systemd.device-timeout=30        0 0
+# Swap volume, will be mounted on the actual instance
+/dev/xvds               none    swap   defaults,nofail,x-systemd.device-timeout=30        0 0
