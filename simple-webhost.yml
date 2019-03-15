@@ -320,61 +320,36 @@ Resources:
           /var/awslogs/bin/aws ec2 create-tags --resources $DATA_VOLUME --tags Key=Name,Value=data-${AWS::StackName}-$INSTANCE_ID
           /var/awslogs/bin/aws ec2 create-tags --resources $SWAP_VOLUME --tags Key=Name,Value=swap-${AWS::StackName}-$INSTANCE_ID
 
-          # If we are running on a nitro-enabled instance, we will have our EBS volumes exposed as NVMe devices, we need to handle this.
-          echo "Checking if we're running on nitro instance..."
-          if ls /dev/nvme?n? > /dev/null 2>&1; then
-            echo "This is a nitro instance, figuring out NVMe volumes..."
-            for i in $(ls /dev/nvme?n?); do
-              VOL_ID=$(nvme id-ctrl -v $i | grep "^sn" | awk '{ print $3; }' | sed 's/vol/vol-/')
-              if [ "$VOL_ID" == "$DATA_VOLUME" ]; then
-                echo "Found data device: $i, $VOL_ID"
-                REAL_DATA_DEVICE="$i"
-              elif [ "$VOL_ID" == "$SWAP_VOLUME" ]; then
-                echo "Found swap device: $i, $VOL_ID"
-                REAL_SWAP_DEVICE="$i"
-              else
-                echo "$i, $VOL_ID doesn't seem to be an instance we should care about."
-              fi
-            done
-          else
-            echo "This is a non-nitro instance, using default device mapping..."
-            REAL_DATA_DEVICE="$DATA_DEVICE"
-            REAL_SWAP_DEVICE="$REAL_SWAP_DEVICE"
-          fi
-
           if grep -q "init done" /etc/fstab; then
             echo "Filesystems have been already initialized. Skipping..."
           else
             echo "Setting up data partition..."
-            if [ -b "$REAL_DATA_DEVICE" ]; then
-              if file -sL $REAL_DATA_DEVICE | grep -q 'ext4 filesystem data'; then
-                echo "There's already an ext4 filesystem on $REAL_DATA_DEVICE."
+            if [ -b "$DATA_DEVICE" ]; then
+              if file -sL $DATA_DEVICE | grep -q 'ext4 filesystem data'; then
+                echo "There's already an ext4 filesystem on $DATA_DEVICE."
               else
-                echo "No filesystem on $REAL_DATA_DEVICE. Formatting..."
-                mkfs.ext4 "$REAL_DATA_DEVICE"
+                echo "No filesystem on $DATA_DEVICE. Formatting..."
+                mkfs.ext4 "$DATA_DEVICE"
                 echo "Format done."
               fi
             else
-              echo "ERROR: $REAL_DATA_DEVICE doesn't seem to be a block device."
+              echo "ERROR: $DATA_DEVICE doesn't seem to be a block device."
             fi
 
             echo "Setting up swap..."
-            if [ -b "$REAL_SWAP_DEVICE" ]; then
-              mkswap "$REAL_SWAP_DEVICE"
+            if [ -b "$SWAP_DEVICE" ]; then
+              mkswap "$SWAP_DEVICE"
             else
-              echo "$REAL_SWAP_DEVICE is not a block device. Aborting..."
+              echo "$SWAP_DEVICE is not a block device. Aborting..."
             fi
 
-            DATA_UUID=$(blkid $REAL_DATA_DEVICE -sUUID -ovalue)
-            SWAP_UUID=$(blkid $REAL_SWAP_DEVICE -sUUID -ovalue)
+            DATA_UUID=$(blkid $DATA_DEVICE -sUUID -ovalue)
+            SWAP_UUID=$(blkid $SWAP_DEVICE -sUUID -ovalue)
 
-            echo "Generating fstab..."
-            echo "# init done" > /etc/fstab
-            echo "LABEL=cloudimg-rootfs / ext4 defaults,discard 0 0" >> /etc/fstab
-            echo "UUID=$DATA_UUID /data ext4 defaults,discard,nofail,x-systemd.device-timeout=30 0 0" >> /etc/fstab
-            echo "UUID=$SWAP_UUID none swap defaults,nofail,x-systemd.device-timeout=30 0 0" >> /etc/fstab
-            cat /etc/fstab
-            echo "Mounting..."
+            echo "Flagging fstab..."
+            echo "# init done" >> /etc/fstab
+            
+            echo "Mounting partitions..."
             mount -a
             swapon -a
             mount
@@ -424,7 +399,7 @@ Resources:
               echo "Running wsman generate..."
               $WSMAN_PATH generate
             else
-              echo "Couldn't find/exacute wsman at $WSMAN_PATH. SITES WILL NOT WORK! YOU HAVE TO FIX THIS MANUALLY!"
+              echo "Couldn't find/execute wsman at $WSMAN_PATH. SITES WILL NOT WORK! YOU HAVE TO FIX THIS MANUALLY!"
             fi
           else
             echo "ERROR: $DATA_MOUNTPOINT is still not mounted. SITES WILL NOT WORK! YOU HAVE TO FIX THIS MANUALLY!"
