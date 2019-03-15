@@ -108,7 +108,21 @@
       owner: root
       mode: 0644
     with_fileglob:
-      - files/systemd/*
+      - files/etc/systemd/system/*
+  - name: Install Amazon EBS tools
+    copy:
+      src: "{{ item }}"
+      dest: /sbin/
+      owner: root
+      mode: 0755
+    with_fileglob:
+      - files/sbin/*
+  - name: Install udev rule for EBS volumes
+    copy:
+      src: files/etc/udev/rules.d/70-ec2-nvme-devices.rules
+      dest: /etc/udev/rules.d/70-ec2-nvme-devices.rules
+      owner: root
+      mode: 0644
   - name: Enable docker-cleanup timer
     systemd:
       name: docker-cleanup.timer
@@ -117,7 +131,7 @@
       daemon_reload: yes
   - name: Deploy new nginx configuration
     copy:
-      src: files/nginx.conf
+      src: files/etc/nginx/nginx.conf
       dest: /etc/nginx/nginx.conf
       owner: root
       group: root
@@ -126,7 +140,7 @@
     shell: rm /etc/nginx/conf.d/*
   - name: Install nginx default site config
     copy:
-      src: files/zzz_default.conf
+      src: files/etc/nginx/conf.d/zzz_default.conf
       dest: /etc/nginx/conf.d/zzz_default.conf
       owner: root
       group: root
@@ -170,7 +184,7 @@
       state: directory
   - name: Install modified fstab
     copy:
-      src: files/fstab
+      src: files/etc/fstab
       dest: /etc/fstab
       owner: root
       group: root
