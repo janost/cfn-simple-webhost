@@ -9,43 +9,26 @@
   - name: Get distro codename
     shell: lsb_release -cs
     register: distro
-  - name: Import nginx repo signing key
+  - name: Import repo signing keys
     apt_key:
-      url: https://nginx.org/keys/nginx_signing.key
+      url: "{{ item }}"
       state: present
-  - name: Import docker repo signing key
-    apt_key:
-      url: https://download.docker.com/linux/ubuntu/gpg
-      state: present
-  - name: Add nginx repository
-    apt_repository:
-      repo: "deb [arch=amd64] http://nginx.org/packages/ubuntu {{ distro.stdout }} nginx"
-      state: present
-      update_cache: no
-  - name: Add docker repository
-    apt_repository:
-      repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ distro.stdout }} stable"
-      state: present
-      update_cache: no
-  - name: Add borgbackup repository
-    apt_repository:
-      repo: "ppa:costamagnagianfranco/borgbackup"
-      state: present
-      update_cache: no
-  - name: Add universe repository
-    apt_repository:
-      update_cache: no
-      state: present
-      repo: "{{ item }}"
     loop:
+      - https://nginx.org/keys/nginx_signing.key
+      - https://download.docker.com/linux/ubuntu/gpg
+  - name: Add repositories to apt
+    apt_repository:
+      repo: "{{ item }}"
+      state: present
+      update_cache: no
+    loop:
+      - "deb [arch=amd64] http://nginx.org/packages/ubuntu {{ distro.stdout }} nginx"
+      - "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ distro.stdout }} stable"
+      - "ppa:costamagnagianfranco/borgbackup"
+      - "ppa:certbot/certbot"
       - "deb http://archive.ubuntu.com/ubuntu/ {{ distro.stdout }} universe"
       - "deb http://archive.ubuntu.com/ubuntu/ {{ distro.stdout }}-updates universe"
       - "deb http://security.ubuntu.com/ubuntu/ {{ distro.stdout }}-security universe"
-  - name: Add certbot repository
-    apt_repository:
-      repo: "ppa:certbot/certbot"
-      state: present
-      update_cache: no
   - name: Upgrade all packages to the latest version
     apt:
       update_cache: yes
@@ -189,6 +172,14 @@
       owner: root
       group: root
       mode: 0644
+  - name: Install sysctl configs
+    copy:
+      src: "{{ item }}"
+      dest: /etc/sysctl.d/
+      owner: root
+      mode: 0644
+    with_fileglob:
+      - files/etc/sysctl.d/*
   - name: Copy awslogs agent base configuration
     copy:
       src: files/awslogs.conf
