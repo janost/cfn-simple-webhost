@@ -3,8 +3,6 @@
   vars:
     aws_region: "{{ aws_region }}"
   become: yes
-  roles:
-    - stefangweichinger.rclone
   tasks:
   - name: Get distro codename
     shell: lsb_release -cs
