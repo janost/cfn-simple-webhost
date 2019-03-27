@@ -127,7 +127,7 @@
       group: root
       mode: 0644
   - name: Set up docker web network
-    shell: "docker network create -d bridge --subnet=172.28.200.0/24 --gateway=172.28.200.1 -o \"com.docker.network.bridge.enable_ip_masquerade=true\" -o \"com.docker.network.bridge.enable_icc=true\" -o \"com.docker.network.bridge.host_binding_ipv4=127.0.0.1\" -o \"com.docker.network.bridge.name=dweb0\" -o \"com.docker.network.driver.mtu=1500\" web"
+    shell: "docker network create -d bridge --subnet=172.28.0.0/16 --gateway=172.28.0.1 -o \"com.docker.network.bridge.enable_ip_masquerade=true\" -o \"com.docker.network.bridge.enable_icc=true\" -o \"com.docker.network.bridge.host_binding_ipv4=127.0.0.1\" -o \"com.docker.network.bridge.name=dweb0\" -o \"com.docker.network.driver.mtu=1500\" web"
   - name: Fix ubuntu's libpcre madness
     file:
       src: "libpcre.so.3"
