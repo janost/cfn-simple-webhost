@@ -14,6 +14,7 @@
     loop:
       - https://nginx.org/keys/nginx_signing.key
       - https://download.docker.com/linux/ubuntu/gpg
+      - https://repos.influxdata.com/influxdb.key
   - name: Add repositories to apt
     apt_repository:
       repo: "{{ item }}"
@@ -22,6 +23,7 @@
     loop:
       - "deb [arch=amd64] http://nginx.org/packages/ubuntu {{ distro.stdout }} nginx"
       - "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ distro.stdout }} stable"
+      - "deb https://repos.influxdata.com/ubuntu/ {{ distro.stdout }} stable"
       - "ppa:costamagnagianfranco/borgbackup"
       - "ppa:certbot/certbot"
       - "deb http://archive.ubuntu.com/ubuntu/ {{ distro.stdout }} universe"
@@ -54,6 +56,7 @@
       - python-setuptools
       - python-pip
       - borgbackup
+      - telegraf
       - pwgen
       - php7.2-cli
       - php7.2-gd
@@ -144,6 +147,11 @@
       groups: web,docker
       append: yes
       state: present
+  - name: Add telegraf to docker group
+    user:
+      name: telegraf
+      groups: docker
+      append: yes
   - name: Enable haveged service
     systemd:
       name: haveged
