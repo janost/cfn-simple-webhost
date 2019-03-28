@@ -316,9 +316,9 @@ Resources:
           ROOT_VOLUME=$(/var/awslogs/bin/aws ec2 describe-volumes --query 'Volumes[*].VolumeId' --filters Name=attachment.instance-id,Values=$INSTANCE_ID Name=attachment.device,Values=/dev/xvda --output text)
           DATA_VOLUME=$(/var/awslogs/bin/aws ec2 describe-volumes --query 'Volumes[*].VolumeId' --filters Name=attachment.instance-id,Values=$INSTANCE_ID Name=attachment.device,Values=$DATA_DEVICE --output text)
           SWAP_VOLUME=$(/var/awslogs/bin/aws ec2 describe-volumes --query 'Volumes[*].VolumeId' --filters Name=attachment.instance-id,Values=$INSTANCE_ID Name=attachment.device,Values=$SWAP_DEVICE --output text)
-          /var/awslogs/bin/aws ec2 create-tags --resources $ROOT_VOLUME --tags Key=Name,Value=root-${AWS::StackName}-$INSTANCE_ID
-          /var/awslogs/bin/aws ec2 create-tags --resources $DATA_VOLUME --tags Key=Name,Value=data-${AWS::StackName}-$INSTANCE_ID
-          /var/awslogs/bin/aws ec2 create-tags --resources $SWAP_VOLUME --tags Key=Name,Value=swap-${AWS::StackName}-$INSTANCE_ID
+          /var/awslogs/bin/aws ec2 create-tags --resources $ROOT_VOLUME --tags Key=Name,Value=${AWS::StackName}-$INSTANCE_ID-root
+          /var/awslogs/bin/aws ec2 create-tags --resources $DATA_VOLUME --tags Key=Name,Value=${AWS::StackName}-$INSTANCE_ID-data
+          /var/awslogs/bin/aws ec2 create-tags --resources $SWAP_VOLUME --tags Key=Name,Value=${AWS::StackName}-$INSTANCE_ID-swap
 
           if grep -q "init done" /etc/fstab; then
             echo "Filesystems have been already initialized. Skipping..."
