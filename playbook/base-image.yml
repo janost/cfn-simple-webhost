@@ -67,7 +67,7 @@
       - python-certbot-nginx
   - name: Install docker-compose
     get_url:
-      url: "https://github.com/docker/compose/releases/download/1.24.0-rc1/docker-compose-Linux-x86_64"
+      url: "https://github.com/docker/compose/releases/download/1.24.0-rc3/docker-compose-Linux-x86_64"
       dest: "/usr/local/bin/docker-compose"
       mode: 0755
       force: yes
@@ -79,7 +79,7 @@
   - name: "Fail on docker-compose checksum mismatch"
     fail:
       msg: "Docker-compose sha256 checksum doesn't match!"
-    when: dcst.stat.checksum != '451b7dbb34a4ee3b69abc9c60414ee277416d69069e200274b2f37da0d558d30'
+    when: dcst.stat.checksum != '62758d897f54a7ce34a58ca12abd0c8948bc64b065118f3cd778b36f29df39fe'
   - name: Clean apt cache
     shell: apt-get clean
   - name: Deploy systemd services.
