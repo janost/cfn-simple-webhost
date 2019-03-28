@@ -133,8 +133,8 @@ Resources:
       - Key: Name
         Value: !Join ['-', [!Ref 'AWS::StackName', VPC]]
       CidrBlock: '10.1.0.0/16'
-      EnableDnsSupport: 'true'
-      EnableDnsHostnames: 'true'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
 
   MainIGW:
     Type: AWS::EC2::InternetGateway
@@ -442,7 +442,7 @@ Resources:
               owner: root
               group: root
             /etc/systemd/system/cfn-hup.service:
-              content: !Sub |
+              content: |
                 [Unit]
                 Description=cfn-hup daemon
 
