@@ -275,7 +275,7 @@ Resources:
       KeyName: !Ref KeyName
       IamInstanceProfile: !Ref WebInstanceProfile
       BlockDeviceMappings:
-        - DeviceName: '/dev/xvda'
+        - DeviceName: '/dev/sda1'
           Ebs:
             VolumeType: gp2
             Encrypted: true
