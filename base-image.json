@@ -22,7 +22,7 @@
       "owners": ["099720109477"],
       "most_recent": true
     },
-    "instance_type": "t2.micro",
+    "instance_type": "t3.micro",
     "tags": {
       "Name": "{{user `ami_name`}}",
       "OS_Version": "Ubuntu",
