@@ -68,9 +68,26 @@
       - mc
       - certbot
       - python-certbot-nginx
+  - name: Download bitwarden-cli
+    get_url:
+      url: "https://vault.bitwarden.com/download/?app=cli&platform=linux"
+      dest: "/tmp/bw-cli.zip"
+      mode: 0644
+      force: yes
+  - name: Install bitwarden-cli
+    unarchive:
+      src: "/tmp/bw-cli.zip"
+      remote_src: yes
+      dest: /usr/local/bin
+  - name: Set bitwarden-cli permissions
+    file:
+      path: /usr/local/bin/bw
+      owner: root
+      group: root
+      mode: 0755
   - name: Install docker-compose
     get_url:
-      url: "https://github.com/docker/compose/releases/download/1.24.0-rc3/docker-compose-Linux-x86_64"
+      url: "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-Linux-x86_64"
       dest: "/usr/local/bin/docker-compose"
       mode: 0755
       force: yes
@@ -82,7 +99,7 @@
   - name: "Fail on docker-compose checksum mismatch"
     fail:
       msg: "Docker-compose sha256 checksum doesn't match!"
-    when: dcst.stat.checksum != '62758d897f54a7ce34a58ca12abd0c8948bc64b065118f3cd778b36f29df39fe'
+    when: dcst.stat.checksum != 'bee6460f96339d5d978bb63d17943f773e1a140242dfa6c941d5e020a302c91b'
   - name: Clean apt cache
     shell: apt-get clean
   - name: Deploy systemd services.
