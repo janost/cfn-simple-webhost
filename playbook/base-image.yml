@@ -157,6 +157,10 @@
     group:
       name: web
       state: present
+  - name: Create group 'ssh-users'
+    group:
+      name: ssh-users
+      state: present
   - name: Add the user 'web'
     user:
       name: web
@@ -164,6 +168,13 @@
       groups: web,docker
       append: yes
       state: present
+  - name: Add ubuntu user to ssh-users
+    user:
+      name: ubuntu
+      append: yes
+      groups: ssh-users
+      state: present
+      shell: /bin/bash
   - name: Add telegraf to docker group
     user:
       name: telegraf
@@ -218,3 +229,9 @@
       force: yes
   - name: Install awslogs agent
     shell: "python /tmp/awslogs-agent-setup.py --region {{ aws_region }} --non-interactive -c /tmp/awslogs.conf"
+  - name: Deploy sshd configuration
+    template:
+      src: files/etc/ssh/sshd_config
+      dest: /etc/ssh/sshd_config
+      owner: root
+      mode: 0644
