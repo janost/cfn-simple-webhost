@@ -206,6 +206,12 @@
       owner: root
       group: root
       mode: 0644
+  - name: Load required modules on boot
+    copy:
+      src: files/etc/modules-load.d/tcp-bbr-fq.conf
+      dest: /etc/modules-load.d/tcp-bbr-fq.configuration
+      owner: root
+      mode: 0644
   - name: Install sysctl configs
     copy:
       src: "{{ item }}"
