@@ -530,7 +530,7 @@ Resources:
                   echo "MEMCACHED_PORT=${ElastiCachePort}" >> $HOSTING_ENV_FILE
                   echo "SOLR_HOST=$(ip addr show dweb0 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/')" >> $HOSTING_ENV_FILE
 
-                  chmod 0400 $HOSTING_ENV_FILE
+                  chmod 0444 $HOSTING_ENV_FILE
                 - {
                   ElastiCacheHost: !If [cEnableMemcached, !GetAtt ElastiCacheCluster.ConfigurationEndpoint.Address, "" ],
                   ElastiCachePort: !If [cEnableMemcached, !GetAtt ElastiCacheCluster.ConfigurationEndpoint.Port, "" ]
