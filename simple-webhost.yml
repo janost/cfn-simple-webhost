@@ -213,6 +213,9 @@ Resources:
       GatewayId: !Ref MainIGW
       RouteTableId: !Ref PublicRouteTable1
 
+  BackupBucket:
+    Type: AWS::S3::Bucket
+
   DBSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -288,6 +291,16 @@ Resources:
           - Effect: Allow
             Action: ec2:CreateTags
             Resource: arn:aws:ec2:*:*:volume/*
+      - PolicyName: BackupBucketPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:*
+            Resource:
+            - !Join ['', ['arn:aws:s3:::', !Ref 'BackupBucket']]
+            - !Join ['', ['arn:aws:s3:::', !Ref 'BackupBucket', '/*']]
 
   WebInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -350,6 +363,12 @@ Resources:
           /var/awslogs/bin/aws ec2 create-tags --resources $ROOT_VOLUME --tags Key=Name,Value=${AWS::StackName}-$INSTANCE_ID-root
           /var/awslogs/bin/aws ec2 create-tags --resources $DATA_VOLUME --tags Key=Name,Value=${AWS::StackName}-$INSTANCE_ID-data
           /var/awslogs/bin/aws ec2 create-tags --resources $SWAP_VOLUME --tags Key=Name,Value=${AWS::StackName}-$INSTANCE_ID-swap
+
+          cat > /etc/profile.d/export_instance_tags.sh << 'EOF'
+
+          export BACKUP_BUCKET_NAME=${BackupBucket}
+          export PATH="$PATH:/var/awslogs/bin"
+          EOF
 
           if grep -q "init done" /etc/fstab; then
             echo "Filesystems have been already initialized. Skipping..."
